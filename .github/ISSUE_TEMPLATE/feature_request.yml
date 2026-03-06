@@ -1,0 +1,60 @@
+name: Feature Request
+description: Suggest a new feature or improvement for go-audit
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe it below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this feature solve? Is it related to a frustration?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution you'd like.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or features you've considered.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Core API
+        - Domain / Ports
+        - Adapter — Storage
+        - Adapter — Serializer
+        - Adapter — Cloner
+        - Adapter — Metadata
+        - Plugin — OpenTelemetry
+        - App — Router / Tiering
+        - Testing utilities
+        - Documentation
+        - CI / Tooling
+        - Other
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am willing to submit a PR for this feature.
+          required: false

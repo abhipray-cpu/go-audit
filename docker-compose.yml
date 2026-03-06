@@ -1,0 +1,172 @@
+# docker-compose.yml — Integration-test infrastructure for go-audit.
+#
+# Usage:
+#   docker compose up -d          # start all services
+#   docker compose down -v        # stop + remove volumes
+#   docker compose ps             # check health
+#
+# Services:
+#   postgres    – primary RDBMS store (adapter/postgres, adapter/wal/db)
+#   clickhouse  – OLAP analytics store (adapter/clickhouse)
+#   mysql       – alternate RDBMS store (adapter/mysql)
+#   redis       – cache / custom WAL backend
+#   kafka       – event streaming (subscriber / publisher)
+#   zookeeper   – Kafka dependency (KRaft mode not used for compat)
+#   minio       – S3-compatible cold store (adapter/coldstore/s3)
+
+services:
+  # ──────────────────────────────────────────────────────────────────────
+  # PostgreSQL 16  — matches CI config (user: audit, db: audit_test)
+  # Also supports adapter/wal/db which uses $1/$2 Postgres placeholders.
+  # ──────────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: goaudit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: audit
+      POSTGRES_PASSWORD: audit
+      POSTGRES_DB: audit_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit -d audit_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # ClickHouse 24 — OLAP store.
+  # HTTP API on 8123, native protocol on 9000.
+  # ──────────────────────────────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: goaudit-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: audit_test
+      CLICKHOUSE_USER: audit
+      CLICKHOUSE_PASSWORD: audit
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"   # HTTP
+      - "9000:9000"   # native
+    volumes:
+      - chdata:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || wget -qO- http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # MySQL 8.4 LTS — alternate RDBMS (requires 8.0.29+ for IF NOT EXISTS).
+  # ──────────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.4
+    container_name: goaudit-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_USER: audit
+      MYSQL_PASSWORD: audit
+      MYSQL_DATABASE: audit_test
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "audit", "-paudit"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Redis 7 — cache / custom WAL backend.
+  # ──────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: goaudit-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Kafka 3.7 (KRaft mode — no Zookeeper required).
+  # Broker on 9092 (host) / 29092 (internal).
+  # ──────────────────────────────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: goaudit-kafka
+    restart: unless-stopped
+    environment:
+      # KRaft settings (no Zookeeper)
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Listener settings
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Cluster
+      CLUSTER_ID: "goaudit-kafka-cluster-001"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Auto-create topics for convenience
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # Log retention
+      KAFKA_LOG_RETENTION_HOURS: 1
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:29092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # ──────────────────────────────────────────────────────────────────────
+  # MinIO — S3-compatible object store for adapter/coldstore/s3 tests.
+  # Console on 9001, API on 9100.
+  # ──────────────────────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: goaudit-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001" --address ":9100"
+    ports:
+      - "9100:9100"   # S3 API
+      - "9001:9001"   # Console UI
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  chdata:
+  mysqldata:
+  redisdata:
+  kafkadata:
+  miniodata:

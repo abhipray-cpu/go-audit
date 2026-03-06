@@ -1,0 +1,49 @@
+version: "2"
+
+run:
+  timeout: 5m
+  go: '1.21'
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - misspell
+    - gocritic
+    - revive
+    - bodyclose
+    - noctx
+    - sqlclosecheck
+    - prealloc
+    - unparam
+    - nakedret
+  settings:
+    gocritic:
+      enabled-checks:
+        - appendAssign
+        - argOrder
+        - badCall
+        - dupArg
+        - dupBranchBody
+        - exitAfterDefer
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+        - name: blank-imports
+          severity: error
+
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [errcheck, gocritic]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

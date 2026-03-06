@@ -1,0 +1,40 @@
+# Build artifacts
+*.out
+*.exe
+*.test
+bin/
+bench.txt
+
+# Compiled example binaries
+04-background-mode
+05-otel-observability
+06-wal
+07-schema-evolution
+08-custom-adapter
+go-audit-gen
+
+# Coverage
+coverage.out
+coverage.html
+
+# Dependencies
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Drafts & blog posts
+*blog-post*
+*draft*.md
+
+# Temporary
+*.tmp
+*.log

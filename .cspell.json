@@ -1,0 +1,20 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "abhipray",
+    "codegen",
+    "myapp",
+    "userentity",
+    "productentity",
+    "orderentity",
+    "duptest",
+    "noid",
+    "pgxpool"
+  ],
+  "ignorePaths": [
+    "go.sum",
+    "go.mod",
+    "vendor/**"
+  ]
+}

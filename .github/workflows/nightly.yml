@@ -1,0 +1,76 @@
+name: Nightly
+
+on:
+  schedule:
+    # Runs at 03:00 UTC every day.
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allow manual trigger.
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Fuzz diff engine
+        run: go test -fuzz=Fuzz -fuzztime=60s ./domain/diff/...
+
+      - name: Fuzz registry
+        run: go test -fuzz=Fuzz -fuzztime=60s ./domain/registry/...
+
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run benchmarks
+        run: go test -bench=. -benchmem -count=3 -timeout=15m ./... | tee bench.txt
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ github.run_id }}
+          path: bench.txt
+          retention-days: 30
+
+  sub-modules:
+    name: Sub-module Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - adapter/postgres
+          - adapter/clickhouse
+          - adapter/mysql
+          - adapter/coldstore/s3
+          - adapter/coldstore/gcs
+          - adapter/serializer/msgpack
+          - plugin/otel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Test ${{ matrix.module }}
+        working-directory: ${{ matrix.module }}
+        run: |
+          go mod download
+          go test -race -count=1 ./...
