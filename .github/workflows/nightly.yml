@@ -14,7 +14,7 @@ jobs:
     name: Fuzz Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -31,7 +31,7 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -62,7 +62,7 @@ jobs:
           - adapter/serializer/msgpack
           - plugin/otel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v5
