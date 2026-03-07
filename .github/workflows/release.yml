@@ -53,9 +53,9 @@ jobs:
           AUDIT_TEST_POSTGRES_DSN: "postgres://audit:audit@localhost:5432/audit_test?sslmode=disable"
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v7
         with:
-          version: latest
+          version: v2.0.2
           args: --timeout=5m
 
   release:

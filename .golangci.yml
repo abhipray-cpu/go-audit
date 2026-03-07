@@ -9,10 +9,7 @@ linters:
     - errcheck
     - govet
     - staticcheck
-    - unused
-    - gosimple
     - ineffassign
-    - typecheck
     - misspell
     - gocritic
     - revive
@@ -23,14 +20,6 @@ linters:
     - unparam
     - nakedret
   settings:
-    gocritic:
-      enabled-checks:
-        - appendAssign
-        - argOrder
-        - badCall
-        - dupArg
-        - dupBranchBody
-        - exitAfterDefer
     revive:
       rules:
         - name: exported
@@ -40,8 +29,18 @@ linters:
 
   exclusions:
     rules:
+      # Test files: relax errcheck, gocritic, unparam, unused
       - path: _test\.go
-        linters: [errcheck, gocritic]
+        linters: [errcheck, gocritic, unparam, unused]
+      # Examples: exitAfterDefer is intentional; deferred cleanup errors are noise
+      - path: ^examples/
+        linters: [errcheck, gocritic, noctx]
+      # Testing package: mocks deliberately skip doc comments; containers uses DialTimeout intentionally
+      - path: ^testing/
+        linters: [revive, noctx, errcheck, prealloc]
+      # cmd: stdout write error is noise in a codegen tool
+      - path: ^cmd/
+        linters: [errcheck]
 
 formatters:
   enable:

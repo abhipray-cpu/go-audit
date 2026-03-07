@@ -9,7 +9,7 @@ import (
 )
 
 func TestHTTPExtractor_FromRequest(t *testing.T) {
-	req, _ := http.NewRequest("POST", "/users", nil)
+	req, _ := http.NewRequestWithContext(context.Background(), "POST", "/users", nil)
 	req.Header.Set("X-Actor-ID", "user-42")
 	req.Header.Set("X-Actor-Type", "human")
 	req.Header.Set("X-Audit-Reason", "Updated billing address")
@@ -54,7 +54,7 @@ func TestHTTPExtractor_NoRequest(t *testing.T) {
 }
 
 func TestHTTPExtractor_FallbackRequestID(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/users", nil)
+	req, _ := http.NewRequestWithContext(context.Background(), "GET", "/users", nil)
 	req.Header.Set("X-Request-ID", "req-123")
 
 	ctx := WithHTTPRequest(context.Background(), req)
