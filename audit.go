@@ -761,7 +761,7 @@ func (a *Auditor) FindByActor(ctx context.Context, entityType, entityID, actorID
 // point in time. Returns one record per entity ID (in the same order).
 // Entities with no version at that time are omitted from the result.
 func (a *Auditor) GetBulkAtTime(ctx context.Context, entityType string, entityIDs []string, t time.Time) ([]domain.VersionRecord, error) {
-	var results []domain.VersionRecord
+	results := make([]domain.VersionRecord, 0, len(entityIDs))
 	for _, eid := range entityIDs {
 		rec, err := a.cfg.Reader.GetAtTime(ctx, entityType, eid, t)
 		if err != nil {

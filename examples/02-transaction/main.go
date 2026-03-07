@@ -16,6 +16,7 @@ import (
 	audittest "github.com/abhipray-cpu/go-audit/testing"
 )
 
+// Order represents a customer order tracked in audit.
 type Order struct {
 	ID     string  `version:"id"`
 	Status string  `version:"tracked"`
