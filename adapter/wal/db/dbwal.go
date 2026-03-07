@@ -146,7 +146,7 @@ func (w *WAL) Replay(ctx context.Context) ([]port.WALEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dbwal: replay query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var entries []port.WALEntry
 	for rows.Next() {

@@ -65,7 +65,7 @@ func New(dir string) (*WAL, error) {
 
 	ackFile, err := os.OpenFile(ackPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o644)
 	if err != nil {
-		walFile.Close()
+		_ = walFile.Close()
 		return nil, fmt.Errorf("filewal: open ack: %w", err)
 	}
 

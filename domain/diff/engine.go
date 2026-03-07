@@ -416,7 +416,7 @@ func applyChange(target reflect.Value, change domain.FieldChange) error {
 
 // applyMapPath handles applying a change within a map. pathParts contains
 // the remaining path segments starting at the current map level.
-func applyMapPath(m reflect.Value, pathParts []string, newVal, oldVal json.RawMessage) error {
+func applyMapPath(m reflect.Value, pathParts []string, newVal, _ json.RawMessage) error {
 	if len(pathParts) == 0 {
 		return nil
 	}
@@ -463,7 +463,7 @@ func applyMapPath(m reflect.Value, pathParts []string, newVal, oldVal json.RawMe
 		child = child.Elem()
 	}
 	if child.Kind() == reflect.Map && child.Type().Key().Kind() == reflect.String {
-		return applyMapPath(child, pathParts[1:], newVal, oldVal)
+		return applyMapPath(child, pathParts[1:], newVal, nil)
 	}
 
 	return fmt.Errorf("expected map at path segment %q, got %s", pathParts[0], child.Kind())
